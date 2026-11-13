@@ -1,0 +1,1291 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetoMeta | Retos de Ahorro y Financiamiento</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti CDN para celebración al completar retos -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Animaciones y estilos personalizados limpios */
+        .progress-bar-fill {
+            transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.12);
+        }
+        /* Ocultar scrollbar en pestañas horizontales móviles */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- ==================== HEADER / NAVEGACIÓN ==================== -->
+    <header class="bg-dark-900 text-white sticky top-0 z-30 shadow-md border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.showDashboard()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i data-lucide="target" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl tracking-tight leading-none flex items-center gap-1.5">
+                        Reto<span class="text-brand-500">Meta</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-medium">Ahorro & Metas Colaborativas</p>
+                </div>
+            </div>
+
+            <!-- Botones de Acción Rápida en Header -->
+            <div class="flex items-center gap-2">
+                <button onclick="app.openBackupModal()" title="Respaldo y Datos de Ejemplo" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-sm font-medium">
+                    <i data-lucide="database" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Datos / Ejemplo</span>
+                </button>
+                <button onclick="app.openCreateModal()" class="px-3.5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 transition flex items-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>Nuevo Reto</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== CONTENIDO PRINCIPAL ==================== -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+        <!-- VISTA 1: DASHBOARD PRINCIPAL -->
+        <section id="dashboardView" class="space-y-6">
+            
+            <!-- Tarjetas de Resumen (KPIs) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Total Recaudado -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="wallet" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Acumulado</p>
+                        <div class="flex items-baseline gap-2 mt-0.5">
+                            <h2 id="statTotalUSD" class="text-2xl font-extrabold text-slate-900">$0.00</h2>
+                            <span id="statTotalBS" class="text-xs font-semibold text-slate-500 hidden"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Retos Activos -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="flame" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Retos en Curso</p>
+                        <h2 id="statActiveCount" class="text-2xl font-extrabold text-slate-900 mt-0.5">0</h2>
+                    </div>
+                </div>
+
+                <!-- Metas Completadas -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="trophy" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Metas Logradas</p>
+                        <h2 id="statCompletedCount" class="text-2xl font-extrabold text-slate-900 mt-0.5">0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros y Título de Sección -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Tus Retos y Metas</h2>
+                    <p class="text-sm text-slate-500">Selecciona un reto para registrar pagos o compartir avance por WhatsApp</p>
+                </div>
+                
+                <!-- Tabs de Filtro -->
+                <div class="flex items-center gap-1.5 bg-slate-200/70 p-1 rounded-xl self-start overflow-x-auto no-scrollbar max-w-full">
+                    <button onclick="app.setFilter('all')" id="filter-all" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition">Todos</button>
+                    <button onclick="app.setFilter('individual')" id="filter-individual" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Individual</button>
+                    <button onclick="app.setFilter('group')" id="filter-group" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Grupal</button>
+                    <button onclick="app.setFilter('completed')" id="filter-completed" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Completados</button>
+                </div>
+            </div>
+
+            <!-- Grid de Tarjetas de Retos -->
+            <div id="challengesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Se renderiza dinámicamente con JS -->
+            </div>
+
+            <!-- Estado Vacío (Cuando no hay retos) -->
+            <div id="emptyState" class="hidden bg-white rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center max-w-lg mx-auto my-8">
+                <div class="w-16 h-16 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="rocket" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-1">¡Comienza tu primer reto hoy!</h3>
+                <p class="text-sm text-slate-500 mb-6">Organiza un ahorro para comprarte esa moto, reunir efectivo o armar un pozo compartido con amigos y familia.</p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button onclick="app.openCreateModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Crear Mi Primer Reto
+                    </button>
+                    <button onclick="app.loadDemoData()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i> Cargar Ejemplos (Moto y Efectivo)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 2: DETALLE DE UN RETO -->
+        <section id="detailView" class="hidden space-y-6">
+            <!-- Barra superior de navegación de regreso -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <button onclick="app.showDashboard()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm shadow-sm transition">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Volver a Mis Retos</span>
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="app.shareWhatsApp()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm shadow-md shadow-emerald-500/20 transition">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span>Compartir por WhatsApp</span>
+                    </button>
+                    <button onclick="app.deleteCurrentChallenge()" title="Eliminar reto" class="p-2 rounded-xl bg-white border border-red-200 text-red-600 hover:bg-red-50 transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tarjeta Cabecera del Reto -->
+            <div id="detailHeaderCard" class="bg-dark-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                <!-- Decoración sutil de fondo -->
+                <div class="absolute -right-10 -top-10 w-48 h-48 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="detailBadgeType" class="px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-brand-500/20 text-brand-400 border border-brand-500/30">Individual</span>
+                            <span id="detailBadgeFreq" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300">Semanal</span>
+                            <span id="detailBadgeStatus" class="hidden px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 text-dark-950">¡META COMPLETADA!</span>
+                        </div>
+                        <div class="flex items-center gap-3 pt-1">
+                            <div id="detailIconBox" class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-brand-400 shrink-0">
+                                <!-- Icono -->
+                            </div>
+                            <div>
+                                <h2 id="detailTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight">Nombre del Reto</h2>
+                                <p id="detailDescription" class="text-sm text-slate-400 mt-0.5">Descripción o nota de la meta</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen Financiero del Reto -->
+                    <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 sm:p-5 min-w-[260px]">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="text-xs font-medium text-slate-400">Acumulado</span>
+                            <span id="detailPercent" class="text-sm font-extrabold text-brand-400">0%</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="detailAccumulated" class="text-2xl sm:text-3xl font-extrabold text-white">$0</span>
+                            <span id="detailTarget" class="text-sm font-medium text-slate-400">de $0</span>
+                        </div>
+                        <!-- Barra de Progreso -->
+                        <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden mt-3 p-0.5">
+                            <div id="detailProgressBar" class="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full progress-bar-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-400 mt-2.5">
+                            <span>Cuota: <strong id="detailInstallment" class="text-slate-200">$0</strong></span>
+                            <span>Falta: <strong id="detailRemaining" class="text-amber-400">$0</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenido Principal del Detalle: Tablero de Cuotas / Participantes + Historial -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Columna Izquierda (2/3): Cuadrícula de Sobres/Cuotas o Lista de Participantes -->
+                <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                        <div>
+                            <h3 id="trackerSectionTitle" class="text-lg font-bold text-slate-900">Plan de Aportes</h3>
+                            <p id="trackerSectionSubtitle" class="text-xs text-slate-500">Haz clic en una casilla o participante para registrar o revertir un pago</p>
+                        </div>
+                        <button onclick="app.openQuickPaymentModal()" class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-sm transition inline-flex items-center justify-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            <span>Registrar Abono Libre</span>
+                        </button>
+                    </div>
+
+                    <!-- Contenedor Dinámico de Casillas (Individual) o Participantes (Grupal) -->
+                    <div id="trackerContainer"></div>
+                </div>
+
+                <!-- Columna Derecha (1/3): Historial de Movimientos y Vista Previa WhatsApp -->
+                <div class="space-y-6">
+                    <!-- Historial de Pagos -->
+                    <div class="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+                            <i data-lucide="history" class="w-4 h-4 text-brand-600"></i>
+                            <span>Historial de Movimientos</span>
+                        </h3>
+                        <div id="paymentHistoryList" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta Rápida de Texto WhatsApp -->
+                    <div class="bg-emerald-50/80 rounded-3xl border border-emerald-200/80 p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
+                                <i data-lucide="message-square" class="w-4 h-4 text-emerald-600"></i>
+                                <span>Mensaje para el Grupo</span>
+                            </h4>
+                            <button onclick="app.copyWhatsAppText()" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-xs transition">
+                                Copiar Texto
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-emerald-800 mb-2">Incluye protección de privacidad (sin datos bancarios públicos).</p>
+                        <pre id="whatsappPreviewBox" class="text-xs text-slate-700 bg-white p-3 rounded-xl border border-emerald-200/60 whitespace-pre-wrap font-sans max-h-48 overflow-y-auto"></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODAL: CREAR NUEVO RETO ==================== -->
+    <div id="createModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto">
+            <!-- Header Modal -->
+            <div class="bg-dark-900 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="font-bold text-lg">Crear Nuevo Reto</h3>
+                </div>
+                <button onclick="app.closeModal('createModal')" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Formulario -->
+            <form id="createChallengeForm" onsubmit="app.handleCreateSubmit(event)" class="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+                
+                <!-- Tipo de Reto -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Modalidad del Reto</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="challengeType" value="individual" checked onchange="app.toggleGroupFields()" class="peer sr-only">
+                            <div class="p-3 rounded-2xl border-2 border-slate-200 peer-checked:border-brand-600 peer-checked:bg-brand-50/50 transition text-center">
+                                <i data-lucide="piggy-bank" class="w-5 h-5 mx-auto mb-1 text-brand-600"></i>
+                                <div class="font-bold text-sm text-slate-900">Ahorro Individual</div>
+                                <div class="text-[11px] text-slate-500">Alcancía / Sobres</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="challengeType" value="group" onchange="app.toggleGroupFields()" class="peer sr-only">
+                            <div class="p-3 rounded-2xl border-2 border-slate-200 peer-checked:border-brand-600 peer-checked:bg-brand-50/50 transition text-center">
+                                <i data-lucide="users" class="w-5 h-5 mx-auto mb-1 text-blue-600"></i>
+                                <div class="font-bold text-sm text-slate-900">Reto Grupal</div>
+                                <div class="text-[11px] text-slate-500">Pozo / Colaborativo</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Nombre y Categoría -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Nombre del Reto *</label>
+                        <input type="text" id="inputTitle" required placeholder="Ej. Moto SBR 2026 o Aguinaldo" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Categoría</label>
+                        <select id="inputCategory" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none text-sm bg-white">
+                            <option value="moto">🏍️ Moto / Vehículo</option>
+                            <option value="cash">💵 Dinero en Efectivo</option>
+                            <option value="tech">📱 Equipos / Electrodomésticos</option>
+                            <option value="other">🎯 Otro Objetivo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Descripción corta -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nota o Motivación (Opcional)</label>
+                    <input type="text" id="inputDesc" placeholder="Ej. Meta para diciembre sin deudas" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 outline-none text-sm">
+                </div>
+
+                <!-- Moneda, Monto Objetivo y Frecuencia -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Moneda</label>
+                        <select id="inputCurrency" onchange="app.updateInstallmentPreview()" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 outline-none text-sm bg-white font-semibold">
+                            <option value="$">$ USD</option>
+                            <option value="Bs.">Bs. VES</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Monto Meta Total *</label>
+                        <input type="number" id="inputTarget" required min="1" step="any" placeholder="1200" oninput="app.updateInstallmentPreview()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 outline-none text-sm font-bold">
+                    </div>
+                </div>
+
+                <!-- Frecuencia y Cantidad de Cuotas -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Frecuencia de Aporte</label>
+                        <select id="inputFrequency" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 outline-none text-sm bg-white">
+                            <option value="Diario">Diario</option>
+                            <option value="Semanal" selected>Semanal</option>
+                            <option value="Quincenal">Quincenal</option>
+                            <option value="Mensual">Mensual</option>
+                        </select>
+                    </div>
+                    <div id="installmentsCountWrapper">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Número de Cuotas / Sobres</label>
+                        <input type="number" id="inputInstallmentsCount" min="2" max="100" value="12" oninput="app.updateInstallmentPreview()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 outline-none text-sm">
+                    </div>
+                </div>
+
+                <!-- Sección Exclusiva para Reto Grupal -->
+                <div id="groupParticipantsSection" class="hidden space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-700">Participantes del Pozo</label>
+                        <button type="button" onclick="app.addParticipantRow()" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Añadir Persona
+                        </button>
+                    </div>
+                    <div id="participantsInputsList" class="space-y-2 max-h-44 overflow-y-auto pr-1">
+                        <!-- Filas de participantes -->
+                    </div>
+                </div>
+
+                <!-- Cálculo Automático de Cuota -->
+                <div class="bg-brand-50 border border-brand-200 rounded-2xl p-3.5 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-brand-900">Aporte sugerido por cuota / persona:</span>
+                    <span id="calculatedInstallmentPreview" class="text-base font-extrabold text-brand-700">$0.00</span>
+                </div>
+
+                <!-- Botones Submit -->
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="app.closeModal('createModal')" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-lg shadow-brand-600/20 transition">Crear Reto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: REGISTRAR ABONO / PAGO ==================== -->
+    <div id="paymentModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="bg-dark-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i data-lucide="banknote" class="w-5 h-5 text-brand-400"></i>
+                    <span>Registrar Aporte / Abono</span>
+                </h3>
+                <button onclick="app.closeModal('paymentModal')" class="p-1 rounded-lg text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="app.handlePaymentSubmit(event)" class="p-6 space-y-4">
+                <div id="paymentParticipantSelectGroup" class="hidden">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Participante</label>
+                    <select id="paymentParticipantSelect" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium outline-none"></select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Monto del Abono *</label>
+                    <input type="number" id="paymentAmount" required min="0.01" step="any" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 text-lg font-extrabold outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Fecha</label>
+                        <input type="date" id="paymentDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Nota / Ref (Opcional)</label>
+                        <input type="text" id="paymentNote" placeholder="Ej. Pago móvil / Efectivo" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="app.closeModal('paymentModal')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-md">Confirmar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: RESPALDO JSON & DATOS DEMO ==================== -->
+    <div id="backupModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="bg-dark-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i data-lucide="database" class="w-5 h-5 text-brand-400"></i>
+                    <span>Gestión de Datos y Respaldo</span>
+                </h3>
+                <button onclick="app.closeModal('backupModal')" class="p-1 rounded-lg text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-500 leading-relaxed">Tus retos se guardan automáticamente en este navegador. Puedes exportar una copia de seguridad en JSON o cargar retos de demostración.</p>
+                
+                <div class="space-y-2.5">
+                    <button onclick="app.loadDemoData(); app.closeModal('backupModal')" class="w-full py-3 px-4 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-bold text-sm flex items-center justify-between transition">
+                        <span class="flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-amber-600"></i> Cargar Retos de Ejemplo (Moto y Efectivo)</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+
+                    <button onclick="app.exportJSON()" class="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm flex items-center justify-between transition">
+                        <span class="flex items-center gap-2"><i data-lucide="download" class="w-4 h-4 text-brand-600"></i> Exportar Respaldo (JSON)</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+
+                    <label class="w-full py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-sm flex items-center justify-between transition cursor-pointer">
+                        <span class="flex items-center gap-2"><i data-lucide="upload" class="w-4 h-4 text-blue-600"></i> Importar Respaldo (JSON)</span>
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        <input type="file" accept=".json" onchange="app.importJSON(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL DE CONFIRMACIÓN PERSONALIZADO (Sin confirm()) ==================== -->
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+            <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h4 id="confirmTitle" class="text-base font-bold text-slate-900">¿Estás seguro?</h4>
+                <p id="confirmMessage" class="text-xs text-slate-500 mt-1">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="flex items-center justify-center gap-3 pt-1">
+                <button onclick="app.closeModal('confirmModal')" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition">Cancelar</button>
+                <button id="confirmActionBtn" class="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition">Sí, eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST / NOTIFICACIÓN FLOTANTE ==================== -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-dark-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2.5 text-sm font-medium">
+            <i data-lucide="check-circle-2" class="w-5 h-5 text-brand-400 shrink-0"></i>
+            <span id="toastMessage">Acción completada</span>
+        </div>
+    </div>
+
+    <!-- ==================== LÓGICA JAVASCRIPT DE LA APLICACIÓN ==================== -->
+    <script>
+        const STORAGE_KEY = 'retometa_challenges_v1';
+
+        const app = {
+            challenges: [],
+            currentFilter: 'all',
+            activeChallengeId: null,
+
+            // Inicialización
+            init() {
+                this.loadFromStorage();
+                // Si es la primera vez que abre la app, cargar ejemplos automáticamente para una experiencia inmediata
+                if (this.challenges.length === 0 && !localStorage.getItem('retometa_initialized')) {
+                    this.loadDemoData(true);
+                    localStorage.setItem('retometa_initialized', 'true');
+                }
+                this.renderDashboard();
+                lucide.createIcons();
+            },
+
+            // Persistencia en localStorage
+            loadFromStorage() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    this.challenges = raw ? JSON.parse(raw) : [];
+                } catch (e) {
+                    console.error('Error cargando localStorage:', e);
+                    this.challenges = [];
+                }
+            },
+
+            saveToStorage() {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.challenges));
+                } catch (e) {
+                    this.showToast('Error al guardar localmente');
+                }
+            },
+
+            // Formateo de Moneda
+            formatMoney(amount, currency = '$') {
+                const num = Number(amount) || 0;
+                const formatted = num.toLocaleString('es-VE', {
+                    minimumFractionDigits: num % 1 === 0 ? 0 : 2,
+                    maximumFractionDigits: 2
+                });
+                return currency === '$' ? `$${formatted}` : `Bs. ${formatted}`;
+            },
+
+            // Icono y colores por categoría
+            getCategoryMeta(cat) {
+                const map = {
+                    moto: { icon: 'bike', label: 'Moto / Vehículo', bg: 'bg-emerald-50', text: 'text-emerald-600' },
+                    cash: { icon: 'banknote', label: 'Efectivo', bg: 'bg-blue-50', text: 'text-blue-600' },
+                    tech: { icon: 'smartphone', label: 'Equipos / Tech', bg: 'bg-purple-50', text: 'text-purple-600' },
+                    other: { icon: 'target', label: 'Objetivo', bg: 'bg-amber-50', text: 'text-amber-600' }
+                };
+                return map[cat] || map.other;
+            },
+
+            // Calcular estadísticas de un reto
+            getChallengeStats(c) {
+                const accumulated = c.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+                const target = Number(c.targetAmount) || 1;
+                const percent = Math.min(100, Math.round((accumulated / target) * 100));
+                const remaining = Math.max(0, target - accumulated);
+                const isCompleted = accumulated >= target;
+                return { accumulated, target, percent, remaining, isCompleted };
+            },
+
+            // ==================== DASHBOARD ====================
+            setFilter(filter) {
+                this.currentFilter = filter;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+                    btn.classList.add('text-slate-600');
+                });
+                const activeBtn = document.getElementById(`filter-${filter}`);
+                if (activeBtn) {
+                    activeBtn.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+                    activeBtn.classList.remove('text-slate-600');
+                }
+                this.renderDashboard();
+            },
+
+            showDashboard() {
+                this.activeChallengeId = null;
+                document.getElementById('detailView').classList.add('hidden');
+                document.getElementById('dashboardView').classList.remove('hidden');
+                this.renderDashboard();
+            },
+
+            renderDashboard() {
+                // Calcular KPIs globales
+                let totalUSD = 0;
+                let totalBS = 0;
+                let activeCount = 0;
+                let completedCount = 0;
+
+                this.challenges.forEach(c => {
+                    const stats = this.getChallengeStats(c);
+                    if (c.currency === 'Bs.') totalBS += stats.accumulated;
+                    else totalUSD += stats.accumulated;
+
+                    if (stats.isCompleted) completedCount++;
+                    else activeCount++;
+                });
+
+                document.getElementById('statTotalUSD').textContent = this.formatMoney(totalUSD, '$');
+                const bsEl = document.getElementById('statTotalBS');
+                if (totalBS > 0) {
+                    bsEl.textContent = `+ ${this.formatMoney(totalBS, 'Bs.')}`;
+                    bsEl.classList.remove('hidden');
+                } else {
+                    bsEl.classList.add('hidden');
+                }
+                document.getElementById('statActiveCount').textContent = activeCount;
+                document.getElementById('statCompletedCount').textContent = completedCount;
+
+                // Filtrar retos
+                const filtered = this.challenges.filter(c => {
+                    const stats = this.getChallengeStats(c);
+                    if (this.currentFilter === 'individual') return c.type === 'individual';
+                    if (this.currentFilter === 'group') return c.type === 'group';
+                    if (this.currentFilter === 'completed') return stats.isCompleted;
+                    return true;
+                });
+
+                const grid = document.getElementById('challengesGrid');
+                const emptyState = document.getElementById('emptyState');
+
+                if (filtered.length === 0) {
+                    grid.innerHTML = '';
+                    emptyState.classList.remove('hidden');
+                    lucide.createIcons();
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                grid.innerHTML = filtered.map(c => {
+                    const stats = this.getChallengeStats(c);
+                    const cat = this.getCategoryMeta(c.category);
+                    const totalSlots = c.type === 'group' ? c.participants.length : c.installmentsCount;
+                    const paidSlots = c.type === 'group'
+                        ? c.participants.filter(p => p.paid).length
+                        : c.paidSlots.length;
+                    const installmentAmount = totalSlots > 0 ? (c.targetAmount / totalSlots) : c.targetAmount;
+
+                    return `
+                        <div onclick="app.openChallengeDetail('${c.id}')" class="bg-white rounded-3xl border ${stats.isCompleted ? 'border-brand-500/60 ring-2 ring-brand-500/10' : 'border-slate-200/80'} p-5 shadow-sm card-hover cursor-pointer flex flex-col justify-between">
+                            <div>
+                                <!-- Cabecera tarjeta -->
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-11 h-11 rounded-2xl ${cat.bg} ${cat.text} flex items-center justify-center shrink-0">
+                                            <i data-lucide="${cat.icon}" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${c.type === 'group' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}">
+                                                    ${c.type === 'group' ? 'Grupal' : 'Individual'}
+                                                </span>
+                                                <span class="text-[11px] text-slate-400 font-medium">• ${c.frequency}</span>
+                                            </div>
+                                            <h3 class="font-bold text-slate-900 text-base mt-0.5 line-clamp-1">${this.escapeHTML(c.title)}</h3>
+                                        </div>
+                                    </div>
+                                    ${stats.isCompleted ? `<span class="bg-brand-100 text-brand-700 p-1.5 rounded-full" title="¡Meta Lograda!"><i data-lucide="check-circle-2" class="w-4 h-4"></i></span>` : ''}
+                                </div>
+
+                                <!-- Montos -->
+                                <div class="mt-4 mb-2 flex items-baseline justify-between">
+                                    <div>
+                                        <span class="text-2xl font-extrabold text-slate-900">${this.formatMoney(stats.accumulated, c.currency)}</span>
+                                        <span class="text-xs text-slate-400 font-medium"> / ${this.formatMoney(stats.target, c.currency)}</span>
+                                    </div>
+                                    <span class="text-sm font-extrabold ${stats.isCompleted ? 'text-brand-600' : 'text-slate-700'}">${stats.percent}%</span>
+                                </div>
+
+                                <!-- Barra de progreso -->
+                                <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full ${stats.isCompleted ? 'bg-brand-500' : 'bg-gradient-to-r from-brand-600 to-emerald-400'} rounded-full progress-bar-fill" style="width: ${stats.percent}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Pie de tarjeta -->
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                                <span>Cuota: <strong class="text-slate-700">${this.formatMoney(installmentAmount, c.currency)}</strong></span>
+                                <span class="font-semibold text-slate-600">
+                                    ${c.type === 'group' ? `${paidSlots}/${totalSlots} pagados` : `${paidSlots}/${totalSlots} cuotas`}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                lucide.createIcons();
+            },
+
+            // ==================== CREACIÓN DE NUEVO RETO ====================
+            openCreateModal() {
+                document.getElementById('createChallengeForm').reset();
+                this.toggleGroupFields();
+                // Inicializar 3 filas de participantes por defecto si elige grupal
+                const list = document.getElementById('participantsInputsList');
+                list.innerHTML = '';
+                this.addParticipantRow('Yo (Organizador)', '');
+                this.addParticipantRow('', '');
+                this.updateInstallmentPreview();
+                document.getElementById('createModal').classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.add('hidden');
+            },
+
+            toggleGroupFields() {
+                const type = document.querySelector('input[name="challengeType"]:checked').value;
+                const groupSec = document.getElementById('groupParticipantsSection');
+                const countWrap = document.getElementById('installmentsCountWrapper');
+                
+                if (type === 'group') {
+                    groupSec.classList.remove('hidden');
+                    countWrap.classList.add('hidden');
+                } else {
+                    groupSec.classList.add('hidden');
+                    countWrap.classList.remove('hidden');
+                }
+                this.updateInstallmentPreview();
+            },
+
+            addParticipantRow(nameVal = '', phoneVal = '') {
+                const list = document.getElementById('participantsInputsList');
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2 participant-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Nombre" value="${this.escapeHTML(nameVal)}" required class="p-name flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-brand-500">
+                    <input type="tel" placeholder="WhatsApp (Opcional)" value="${this.escapeHTML(phoneVal)}" class="p-phone w-32 sm:w-36 px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-brand-500">
+                    <button type="button" onclick="this.parentElement.remove(); app.updateInstallmentPreview();" class="p-1.5 text-slate-400 hover:text-red-500 transition" title="Quitar">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </button>
+                `;
+                list.appendChild(row);
+                this.updateInstallmentPreview();
+                lucide.createIcons();
+            },
+
+            updateInstallmentPreview() {
+                const target = parseFloat(document.getElementById('inputTarget').value) || 0;
+                const currency = document.getElementById('inputCurrency').value;
+                const type = document.querySelector('input[name="challengeType"]:checked').value;
+                
+                let divisor = 1;
+                if (type === 'group') {
+                    divisor = document.querySelectorAll('#participantsInputsList .participant-row').length || 1;
+                } else {
+                    divisor = parseInt(document.getElementById('inputInstallmentsCount').value) || 1;
+                }
+
+                const perSlot = target / divisor;
+                document.getElementById('calculatedInstallmentPreview').textContent = this.formatMoney(perSlot, currency);
+            },
+
+            handleCreateSubmit(e) {
+                e.preventDefault();
+                const type = document.querySelector('input[name="challengeType"]:checked').value;
+                const title = document.getElementById('inputTitle').value.trim();
+                const category = document.getElementById('inputCategory').value;
+                const description = document.getElementById('inputDesc').value.trim();
+                const currency = document.getElementById('inputCurrency').value;
+                const targetAmount = parseFloat(document.getElementById('inputTarget').value);
+                const frequency = document.getElementById('inputFrequency').value;
+
+                let participants = [];
+                let installmentsCount = parseInt(document.getElementById('inputInstallmentsCount').value) || 10;
+
+                if (type === 'group') {
+                    const rows = document.querySelectorAll('#participantsInputsList .participant-row');
+                    rows.forEach((row, idx) => {
+                        const pName = row.querySelector('.p-name').value.trim() || `Participante ${idx + 1}`;
+                        const pPhone = row.querySelector('.p-phone').value.trim();
+                        participants.push({
+                            id: 'p_' + Date.now() + '_' + idx,
+                            name: pName,
+                            phone: pPhone,
+                            paid: false
+                        });
+                    });
+                    if (participants.length === 0) {
+                        this.showToast('Agrega al menos un participante');
+                        return;
+                    }
+                    installmentsCount = participants.length;
+                }
+
+                const newChallenge = {
+                    id: 'reto_' + Date.now(),
+                    title,
+                    category,
+                    description,
+                    type,
+                    currency,
+                    targetAmount,
+                    frequency,
+                    installmentsCount,
+                    paidSlots: [], // Para reto individual: índices de sobres/cuotas pagadas
+                    participants,  // Para reto grupal
+                    payments: [],  // Historial de abonos
+                    createdAt: new Date().toISOString()
+                };
+
+                this.challenges.unshift(newChallenge);
+                this.saveToStorage();
+                this.closeModal('createModal');
+                this.showToast('¡Reto creado con éxito!');
+                this.openChallengeDetail(newChallenge.id);
+            },
+
+            // ==================== VISTA DETALLE DE RETO ====================
+            openChallengeDetail(id) {
+                this.activeChallengeId = id;
+                const c = this.challenges.find(item => item.id === id);
+                if (!c) return;
+
+                document.getElementById('dashboardView').classList.add('hidden');
+                document.getElementById('detailView').classList.remove('hidden');
+
+                const stats = this.getChallengeStats(c);
+                const cat = this.getCategoryMeta(c.category);
+                const totalSlots = c.type === 'group' ? c.participants.length : c.installmentsCount;
+                const installmentAmount = totalSlots > 0 ? (c.targetAmount / totalSlots) : c.targetAmount;
+
+                // Rellenar cabecera
+                document.getElementById('detailBadgeType').textContent = c.type === 'group' ? 'Reto Grupal / Pozo' : 'Ahorro Individual';
+                document.getElementById('detailBadgeFreq').textContent = `Aporte ${c.frequency}`;
+                
+                const statusBadge = document.getElementById('detailBadgeStatus');
+                if (stats.isCompleted) statusBadge.classList.remove('hidden');
+                else statusBadge.classList.add('hidden');
+
+                document.getElementById('detailIconBox').innerHTML = `<i data-lucide="${cat.icon}" class="w-6 h-6"></i>`;
+                document.getElementById('detailTitle').textContent = c.title;
+                document.getElementById('detailDescription').textContent = c.description || `Meta de ahorro (${cat.label})`;
+
+                document.getElementById('detailPercent').textContent = `${stats.percent}%`;
+                document.getElementById('detailAccumulated').textContent = this.formatMoney(stats.accumulated, c.currency);
+                document.getElementById('detailTarget').textContent = `de ${this.formatMoney(stats.target, c.currency)}`;
+                document.getElementById('detailProgressBar').style.width = `${stats.percent}%`;
+                document.getElementById('detailInstallment').textContent = this.formatMoney(installmentAmount, c.currency);
+                document.getElementById('detailRemaining').textContent = this.formatMoney(stats.remaining, c.currency);
+
+                // Renderizar tablero (Casillas o Participantes)
+                const trackerContainer = document.getElementById('trackerContainer');
+                if (c.type === 'individual') {
+                    document.getElementById('trackerSectionTitle').textContent = `Alcancía Digital (${c.paidSlots.length}/${c.installmentsCount} cuotas)`;
+                    document.getElementById('trackerSectionSubtitle').textContent = 'Toca un sobre/cuota para marcarlo como ahorrado o desmarcarlo';
+
+                    let gridHTML = `<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5">`;
+                    for (let i = 1; i <= c.installmentsCount; i++) {
+                        const isPaid = c.paidSlots.includes(i);
+                        gridHTML += `
+                            <button onclick="app.toggleIndividualSlot(${i})" class="p-3 rounded-2xl border-2 transition flex flex-col items-center justify-center gap-1 ${isPaid ? 'bg-brand-600 border-brand-600 text-white shadow-md shadow-brand-600/20' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'}">
+                                <span class="text-[10px] font-bold uppercase opacity-75">Cuota #${i}</span>
+                                <span class="text-sm font-extrabold">${this.formatMoney(installmentAmount, c.currency)}</span>
+                                <i data-lucide="${isPaid ? 'check-circle-2' : 'circle'}" class="w-4 h-4 mt-0.5 ${isPaid ? 'text-white' : 'text-slate-300'}"></i>
+                            </button>
+                        `;
+                    }
+                    gridHTML += `</div>`;
+                    trackerContainer.innerHTML = gridHTML;
+
+                } else {
+                    const paidCount = c.participants.filter(p => p.paid).length;
+                    document.getElementById('trackerSectionTitle').textContent = `Participantes (${paidCount}/${c.participants.length} al día)`;
+                    document.getElementById('trackerSectionSubtitle').textContent = 'Marca el estado de pago de cada integrante del reto';
+
+                    trackerContainer.innerHTML = `
+                        <div class="divide-y divide-slate-100">
+                            ${c.participants.map(p => `
+                                <div class="py-3.5 flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full ${p.paid ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-500'} font-bold text-sm flex items-center justify-center shrink-0">
+                                            ${this.escapeHTML(p.name.charAt(0).toUpperCase())}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-sm text-slate-900">${this.escapeHTML(p.name)}</div>
+                                            <div class="text-xs text-slate-500">${p.phone ? this.escapeHTML(p.phone) : 'Cuota: ' + this.formatMoney(installmentAmount, c.currency)}</div>
+                                        </div>
+                                    </div>
+                                    <button onclick="app.toggleGroupParticipant('${p.id}')" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${p.paid ? 'bg-brand-100 text-brand-800 hover:bg-brand-200' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'}">
+                                        <i data-lucide="${p.paid ? 'check-circle-2' : 'clock'}" class="w-4 h-4"></i>
+                                        <span>${p.paid ? 'Pagado' : 'Pendiente'}</span>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // Renderizar Historial de Pagos
+                const historyList = document.getElementById('paymentHistoryList');
+                if (c.payments.length === 0) {
+                    historyList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Aún no hay abonos registrados.</p>`;
+                } else {
+                    historyList.innerHTML = [...c.payments].reverse().map(pay => `
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2">
+                            <div>
+                                <div class="text-xs font-bold text-slate-800">${this.escapeHTML(pay.note || 'Abono registrado')}</div>
+                                <div class="text-[11px] text-slate-400">${pay.date}</div>
+                            </div>
+                            <span class="text-sm font-extrabold text-brand-600">+${this.formatMoney(pay.amount, c.currency)}</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Actualizar vista previa de WhatsApp
+                document.getElementById('whatsappPreviewBox').textContent = this.generateWhatsAppText(c);
+
+                lucide.createIcons();
+            },
+
+            // Alternar cuota en reto individual
+            toggleIndividualSlot(slotNum) {
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+
+                const wasCompleted = this.getChallengeStats(c).isCompleted;
+                const installmentAmount = c.targetAmount / c.installmentsCount;
+                const idx = c.paidSlots.indexOf(slotNum);
+
+                if (idx === -1) {
+                    c.paidSlots.push(slotNum);
+                    c.payments.push({
+                        id: 'pay_' + Date.now(),
+                        slotRef: slotNum,
+                        amount: installmentAmount,
+                        date: new Date().toISOString().split('T')[0],
+                        note: `Cuota #${slotNum} completada`
+                    });
+                    this.showToast(`Cuota #${slotNum} registrada`);
+                } else {
+                    c.paidSlots.splice(idx, 1);
+                    // Remover el pago asociado a esa cuota
+                    const payIdx = c.payments.findIndex(p => p.slotRef === slotNum);
+                    if (payIdx !== -1) c.payments.splice(payIdx, 1);
+                    this.showToast(`Cuota #${slotNum} desmarcada`);
+                }
+
+                this.saveToStorage();
+                this.openChallengeDetail(c.id);
+
+                const nowCompleted = this.getChallengeStats(c).isCompleted;
+                if (!wasCompleted && nowCompleted) {
+                    this.triggerCelebration();
+                }
+            },
+
+            // Alternar estado pagado de participante en reto grupal
+            toggleGroupParticipant(participantId) {
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+
+                const participant = c.participants.find(p => p.id === participantId);
+                if (!participant) return;
+
+                const wasCompleted = this.getChallengeStats(c).isCompleted;
+                const installmentAmount = c.targetAmount / c.participants.length;
+
+                participant.paid = !participant.paid;
+                if (participant.paid) {
+                    c.payments.push({
+                        id: 'pay_' + Date.now(),
+                        participantId: participant.id,
+                        amount: installmentAmount,
+                        date: new Date().toISOString().split('T')[0],
+                        note: `Aporte de ${participant.name}`
+                    });
+                    this.showToast(`Pago de ${participant.name} confirmado`);
+                } else {
+                    const payIdx = c.payments.findIndex(p => p.participantId === participant.id);
+                    if (payIdx !== -1) c.payments.splice(payIdx, 1);
+                    this.showToast(`Estado de ${participant.name} vuelto a pendiente`);
+                }
+
+                this.saveToStorage();
+                this.openChallengeDetail(c.id);
+
+                const nowCompleted = this.getChallengeStats(c).isCompleted;
+                if (!wasCompleted && nowCompleted) {
+                    this.triggerCelebration();
+                }
+            },
+
+            // Modal de Abono Libre
+            openQuickPaymentModal() {
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+
+                const totalSlots = c.type === 'group' ? c.participants.length : c.installmentsCount;
+                const suggested = (c.targetAmount / totalSlots).toFixed(2);
+
+                document.getElementById('paymentAmount').value = suggested;
+                document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('paymentNote').value = '';
+
+                const pGroup = document.getElementById('paymentParticipantSelectGroup');
+                const pSelect = document.getElementById('paymentParticipantSelect');
+                if (c.type === 'group') {
+                    pGroup.classList.remove('hidden');
+                    pSelect.innerHTML = c.participants.map(p => `<option value="${this.escapeHTML(p.name)}">${this.escapeHTML(p.name)}</option>`).join('');
+                } else {
+                    pGroup.classList.add('hidden');
+                }
+
+                document.getElementById('paymentModal').classList.remove('hidden');
+            },
+
+            handlePaymentSubmit(e) {
+                e.preventDefault();
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+
+                const wasCompleted = this.getChallengeStats(c).isCompleted;
+                const amount = parseFloat(document.getElementById('paymentAmount').value);
+                const date = document.getElementById('paymentDate').value;
+                let note = document.getElementById('paymentNote').value.trim();
+
+                if (c.type === 'group') {
+                    const pName = document.getElementById('paymentParticipantSelect').value;
+                    note = note ? `${pName} (${note})` : `Abono de ${pName}`;
+                } else if (!note) {
+                    note = 'Abono extra a alcancía';
+                }
+
+                c.payments.push({
+                    id: 'pay_' + Date.now(),
+                    amount,
+                    date,
+                    note
+                });
+
+                this.saveToStorage();
+                this.closeModal('paymentModal');
+                this.openChallengeDetail(c.id);
+                this.showToast('¡Abono agregado correctamente!');
+
+                const nowCompleted = this.getChallengeStats(c).isCompleted;
+                if (!wasCompleted && nowCompleted) {
+                    this.triggerCelebration();
+                }
+            },
+
+            // Eliminar reto con confirmación personalizada
+            deleteCurrentChallenge() {
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+
+                document.getElementById('confirmTitle').textContent = `¿Eliminar "${c.title}"?`;
+                document.getElementById('confirmMessage').textContent = 'Se borrará todo el progreso y el historial de pagos de este reto.';
+                
+                const confirmBtn = document.getElementById('confirmActionBtn');
+                confirmBtn.onclick = () => {
+                    this.challenges = this.challenges.filter(item => item.id !== c.id);
+                    this.saveToStorage();
+                    this.closeModal('confirmModal');
+                    this.showDashboard();
+                    this.showToast('Reto eliminado');
+                };
+
+                document.getElementById('confirmModal').classList.remove('hidden');
+            },
+
+            // ==================== WHATSAPP SHARING ====================
+            generateWhatsAppText(c) {
+                const stats = this.getChallengeStats(c);
+                const iconEmoji = c.category === 'moto' ? '🏍️' : c.category === 'cash' ? '💵' : c.category === 'tech' ? '📱' : '🎯';
+                
+                // Barra visual de texto
+                const filledBlocks = Math.round(stats.percent / 10);
+                const progressBarText = '🟩'.repeat(filledBlocks) + '⬜'.repeat(10 - filledBlocks);
+
+                let text = `${iconEmoji} *RETO: ${c.title.toUpperCase()}*\n`;
+                text += `━━━━━━━━━━━━━━━━━━━━\n`;
+                text += `🎯 *Meta:* ${this.formatMoney(stats.target, c.currency)}\n`;
+                text += `💰 *Acumulado:* ${this.formatMoney(stats.accumulated, c.currency)} (${stats.percent}%)\n`;
+                text += `⏳ *Falta:* ${this.formatMoney(stats.remaining, c.currency)}\n`;
+                text += `${progressBarText}\n\n`;
+
+                if (c.type === 'group') {
+                    text += `👥 *Estado de Participantes:*\n`;
+                    c.participants.forEach(p => {
+                        text += `${p.paid ? '✅' : '⏳'} ${p.name}: ${p.paid ? 'Pagado' : 'Pendiente'}\n`;
+                    });
+                    text += `\n`;
+                } else {
+                    text += `🐷 *Avance:* ${c.paidSlots.length} de ${c.installmentsCount} cuotas (${c.frequency})\n\n`;
+                }
+
+                text += `🔒 _Nota: Por seguridad, solicitar los datos de pago / Pago Móvil al privado._\n`;
+                text += `📲 Gestionado con *RetoMeta*`;
+                return text;
+            },
+
+            copyWhatsAppText() {
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+                const text = this.generateWhatsAppText(c);
+                
+                // Método compatible con iframes (execCommand)
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                this.showToast('¡Resumen copiado listo para pegar en WhatsApp!');
+            },
+
+            shareWhatsApp() {
+                const c = this.challenges.find(item => item.id === this.activeChallengeId);
+                if (!c) return;
+                const text = encodeURIComponent(this.generateWhatsAppText(c));
+                window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+            },
+
+            // ==================== DATOS DEMO & RESPALDO JSON ====================
+            openBackupModal() {
+                document.getElementById('backupModal').classList.remove('hidden');
+            },
+
+            loadDemoData(silent = false) {
+                const demoChallenges = [
+                    {
+                        id: 'demo_moto_' + Date.now(),
+                        title: 'Reto Moto Bera SBR 2026',
+                        category: 'moto',
+                        description: 'Inicial y cuotas semanales para sacar la moto nueva sin estrés',
+                        type: 'individual',
+                        currency: '$',
+                        targetAmount: 1100,
+                        frequency: 'Semanal',
+                        installmentsCount: 22,
+                        paidSlots: [1, 2, 3, 4, 5, 6, 7],
+                        participants: [],
+                        payments: [
+                            { id: 'p1', slotRef: 1, amount: 50, date: '2026-09-25', note: 'Cuota #1 completada' },
+                            { id: 'p2', slotRef: 2, amount: 50, date: '2026-10-02', note: 'Cuota #2 completada' },
+                            { id: 'p3', slotRef: 3, amount: 50, date: '2026-10-09', note: 'Cuota #3 completada' },
+                            { id: 'p4', slotRef: 4, amount: 50, date: '2026-10-16', note: 'Cuota #4 completada' },
+                            { id: 'p5', slotRef: 5, amount: 50, date: '2026-10-23', note: 'Cuota #5 completada' },
+                            { id: 'p6', slotRef: 6, amount: 50, date: '2026-10-30', note: 'Cuota #6 completada' },
+                            { id: 'p7', slotRef: 7, amount: 50, date: '2026-11-06', note: 'Cuota #7 completada' }
+                        ],
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'demo_cash_' + (Date.now() + 1),
+                        title: 'Pozo Aguinaldo Diciembre $600',
+                        category: 'cash',
+                        description: 'Reto grupal entre amigos de la oficina ($100 c/u)',
+                        type: 'group',
+                        currency: '$',
+                        targetAmount: 600,
+                        frequency: 'Quincenal',
+                        installmentsCount: 6,
+                        paidSlots: [],
+                        participants: [
+                            { id: 'u1', name: 'Carlos Mendoza (Org.)', phone: '', paid: true },
+                            { id: 'u2', name: 'María Fernanda', phone: '', paid: true },
+                            { id: 'u3', name: 'José Gregorio', phone: '', paid: true },
+                            { id: 'u4', name: 'Andrea Valentina', phone: '', paid: true },
+                            { id: 'u5', name: 'Luis Alejandro', phone: '', paid: false },
+                            { id: 'u6', name: 'Sofía Martínez', phone: '', paid: false }
+                        ],
+                        payments: [
+                            { id: 'gp1', participantId: 'u1', amount: 100, date: '2026-11-01', note: 'Aporte de Carlos Mendoza (Org.)' },
+                            { id: 'gp2', participantId: 'u2', amount: 100, date: '2026-11-02', note: 'Aporte de María Fernanda' },
+                            { id: 'gp3', participantId: 'u3', amount: 100, date: '2026-11-05', note: 'Aporte de José Gregorio' },
+                            { id: 'gp4', participantId: 'u4', amount: 100, date: '2026-11-10', note: 'Aporte de Andrea Valentina' }
+                        ],
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+
+                this.challenges = [...demoChallenges, ...this.challenges];
+                this.saveToStorage();
+                this.showDashboard();
+                if (!silent) this.showToast('¡Datos de ejemplo cargados!');
+            },
+
+            exportJSON() {
+                const dataStr = JSON.stringify(this.challenges, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `retometa_respaldo_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showToast('Respaldo JSON descargado');
+            },
+
+            importJSON(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (Array.isArray(imported)) {
+                            this.challenges = imported;
+                            this.saveToStorage();
+                            this.closeModal('backupModal');
+                            this.showDashboard();
+                            this.showToast('Respaldo importado con éxito');
+                        } else {
+                            this.showToast('Formato de archivo no válido');
+                        }
+                    } catch (err) {
+                        this.showToast('Error al leer el archivo JSON');
+                    }
+                };
+                reader.readAsText(file);
+            },
+
+            // ==================== UTILIDADES UI ====================
+            triggerCelebration() {
+                this.showToast('🎉 ¡FELICIDADES! Has completado la meta del reto');
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+            },
+
+            showToast(msg) {
+                const toast = document.getElementById('toast');
+                document.getElementById('toastMessage').textContent = msg;
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                clearTimeout(this.toastTimer);
+                this.toastTimer = setTimeout(() => {
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3200);
+            },
+
+            escapeHTML(str) {
+                if (!str) return '';
+                return str.replace(/[&<>"']/g, m => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[m]));
+            }
+        };
+
+        // Arrancar la app al cargar la ventana
+        window.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
+```
